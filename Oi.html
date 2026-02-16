@@ -1,1 +1,81 @@
-<div>kkkkk</div>
+<html>
+  <head>
+    <title>Andebol VR - Suporte Comando Selfie</title>
+    <script src="https://aframe.io"></script>
+    <script src="https://cdn.jsdelivr.net"></script>
+    
+    <script>
+      // Componente para disparar a bola
+      AFRAME.registerComponent('shooter', {
+        init: function () {
+          // Função que cria e dispara a bola
+          const disparar = () => {
+            let scene = document.querySelector('a-scene');
+            let cam = document.querySelector('[camera]');
+            
+            let newBall = document.createElement('a-sphere');
+            newBall.setAttribute('radius', '0.15');
+            newBall.setAttribute('color', '#8b4513');
+            newBall.setAttribute('dynamic-body', 'mass: 1; restitution: 0.5');
+            
+            let pos = cam.getAttribute('position');
+            newBall.setAttribute('position', `${pos.x} ${pos.y} ${pos.z - 0.5}`);
+
+            let direction = new THREE.Vector3(0, 0, -1);
+            direction.applyQuaternion(cam.object3D.quaternion);
+            direction.multiplyScalar(20); // Velocidade do remate
+
+            scene.appendChild(newBall);
+
+            newBall.addEventListener('body-loaded', () => {
+              let p = newBall.body.position;
+              let f = new THREE.Vector3(direction.x, direction.y + 2, direction.z);
+              newBall.body.applyImpulse(new CANNON.Vec3(f.x, f.y, f.z), new CANNON.Vec3(p.x, p.y, p.z));
+            });
+
+            setTimeout(() => { if(newBall.parentNode) newBall.parentNode.removeChild(newBall); }, 4000);
+          };
+
+          // 1. Deteta clique no ecrã ou botão dos óculos
+          this.el.addEventListener('click', disparar);
+
+          // 2. Deteta QUALQUER tecla (Stick Selfie, Teclado, Volume)
+          window.addEventListener('keydown', (e) => {
+            console.log("Tecla pressionada:", e.keyCode);
+            disparar();
+          });
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <a-scene physics="debug: false" shooter>
+      
+      <!-- Ambiente -->
+      <a-plane static-body rotation="-90 0 0" width="50" height="50" color="#f58220"></a-plane>
+      <a-sky color="#222"></a-sky>
+
+      <!-- Baliza -->
+      
+        <a-box static-body position="-1.5 1 0" width="0.1" height="2" depth="0.1" color="white"></a-box>
+        <a-box static-body position="1.5 1 0" width="0.1" height="2" depth="0.1" color="white"></a-box>
+        <a-box static-body position="0 2 0" width="3.1" height="0.1" depth="0.2" color="white"></a-box>
+        <a-box static-body position="0 1 0.1" width="3" height="2" depth="0.05" visible="false"></a-box>
+      
+
+      <!-- Guarda-redes Móvel -->
+      <a-box static-body position="0 1 -9.7" width="0.7" height="1.7" depth="0.3" color="red"
+             animation="property: position; to: 1.1 1 -9.7; from: -1.1 1 -9.7; dur: 1400; dir: alternate; loop: true; easing: linear">
+      </a-box>
+
+      <!-- Jogador -->
+      
+        
+        
+      
+
+      <a-text value="Usa o teu STICK SELFIE para rematar!" position="-2 3 -5" color="white" align="center"></a-text>
+      
+    </a-scene>
+  </body>
+</html>
