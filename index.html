@@ -1,81 +1,67 @@
 <html>
   <head>
-    <title>Andebol VR - Suporte Comando Selfie</title>
-    <script src="https://aframe.io"></script>
+    <!-- Usando a versão 1.7.1 que indicaste -->
+    <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
+    <!-- Sistema de física para a bola bater nos postes -->
     <script src="https://cdn.jsdelivr.net"></script>
-    
+  </head>
+  <body>
+    <!-- 'shooter' é o nosso script personalizado que deteta o stick bluetooth -->
+    <a-scene physics="gravity: -9.8" shooter>
+      
+      <!-- O CHÃO DO CAMPO -->
+      <a-plane static-body position="0 0 -4" rotation="-90 0 0" width="20" height="20" color="#7BC8A4"></a-plane>
+      
+      <!-- A BALIZA (Feita com cilindros e caixas como no teu exemplo) -->
+      
+        <a-cylinder static-body position="-1.5 1 0" radius="0.05" height="2" color="#FFC65D"></a-cylinder>
+        <a-cylinder static-body position="1.5 1 0" radius="0.05" height="2" color="#FFC65D"></a-cylinder>
+        <a-box static-body position="0 2 0" width="3" height="0.1" depth="0.1" color="#FFC65D"></a-box>
+      
+
+      <!-- O CÉU -->
+      <a-sky color="#ECECEC"></a-sky>
+
+      <!-- CÂMARA COM MIRA (Onde o stick vai "clicar") -->
+      
+        
+        
+      
+    </a-scene>
+
     <script>
-      // Componente para disparar a bola
+      // Lógica para o Stick Bluetooth / Teclado / Clique
       AFRAME.registerComponent('shooter', {
         init: function () {
-          // Função que cria e dispara a bola
           const disparar = () => {
-            let scene = document.querySelector('a-scene');
-            let cam = document.querySelector('[camera]');
+            const cam = document.querySelector('[camera]');
+            const bola = document.createElement('a-sphere');
             
-            let newBall = document.createElement('a-sphere');
-            newBall.setAttribute('radius', '0.15');
-            newBall.setAttribute('color', '#8b4513');
-            newBall.setAttribute('dynamic-body', 'mass: 1; restitution: 0.5');
+            bola.setAttribute('radius', '0.15');
+            bola.setAttribute('color', '#4CC3D9');
+            bola.setAttribute('dynamic-body', 'mass: 1');
             
-            let pos = cam.getAttribute('position');
-            newBall.setAttribute('position', `${pos.x} ${pos.y} ${pos.z - 0.5}`);
+            const pos = cam.getAttribute('position');
+            bola.setAttribute('position', `${pos.x} ${pos.y} ${pos.z - 0.5}`);
 
-            let direction = new THREE.Vector3(0, 0, -1);
+            // Direção baseada na rotação da câmara (Giroscópio)
+            const direction = new THREE.Vector3(0, 0, -1);
             direction.applyQuaternion(cam.object3D.quaternion);
-            direction.multiplyScalar(20); // Velocidade do remate
+            direction.multiplyScalar(15); 
 
-            scene.appendChild(newBall);
+            document.querySelector('a-scene').appendChild(bola);
 
-            newBall.addEventListener('body-loaded', () => {
-              let p = newBall.body.position;
-              let f = new THREE.Vector3(direction.x, direction.y + 2, direction.z);
-              newBall.body.applyImpulse(new CANNON.Vec3(f.x, f.y, f.z), new CANNON.Vec3(p.x, p.y, p.z));
+            bola.addEventListener('body-loaded', () => {
+              const p = bola.body.position;
+              bola.body.applyImpulse(new CANNON.Vec3(direction.x, direction.y + 2, direction.z), new CANNON.Vec3(p.x, p.y, p.z));
             });
-
-            setTimeout(() => { if(newBall.parentNode) newBall.parentNode.removeChild(newBall); }, 4000);
           };
 
-          // 1. Deteta clique no ecrã ou botão dos óculos
-          this.el.addEventListener('click', disparar);
-
-          // 2. Deteta QUALQUER tecla (Stick Selfie, Teclado, Volume)
-          window.addEventListener('keydown', (e) => {
-            console.log("Tecla pressionada:", e.keyCode);
-            disparar();
-          });
+          // Deteta qualquer tecla (Stick Selfie) ou clique no ecrã
+          window.addEventListener('keydown', disparar);
+          window.addEventListener('click', disparar);
         }
       });
     </script>
-  </head>
-  <body>
-    <a-scene physics="debug: false" shooter>
-      
-      <!-- Ambiente -->
-      <a-plane static-body rotation="-90 0 0" width="50" height="50" color="#f58220"></a-plane>
-      <a-sky color="#222"></a-sky>
-
-      <!-- Baliza -->
-      
-        <a-box static-body position="-1.5 1 0" width="0.1" height="2" depth="0.1" color="white"></a-box>
-        <a-box static-body position="1.5 1 0" width="0.1" height="2" depth="0.1" color="white"></a-box>
-        <a-box static-body position="0 2 0" width="3.1" height="0.1" depth="0.2" color="white"></a-box>
-        <a-box static-body position="0 1 0.1" width="3" height="2" depth="0.05" visible="false"></a-box>
-      
-
-      <!-- Guarda-redes Móvel -->
-      <a-box static-body position="0 1 -9.7" width="0.7" height="1.7" depth="0.3" color="red"
-             animation="property: position; to: 1.1 1 -9.7; from: -1.1 1 -9.7; dur: 1400; dir: alternate; loop: true; easing: linear">
-      </a-box>
-
-      <!-- Jogador -->
-      
-        
-        
-      
-
-      <a-text value="Usa o teu STICK SELFIE para rematar!" position="-2 3 -5" color="white" align="center"></a-text>
-      
-    </a-scene>
   </body>
 </html>
