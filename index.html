@@ -1,39 +1,38 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Andebol VR - Final Fix</title>
+    <title>Andebol VR - Fixed</title>
     <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
+    <!-- Essential: Added the physics engine library -->
     <script src="https://cdn.jsdelivr.net"></script>
   </head>
   <body>
-    <!-- vr-mode-ui garante que o botão dos óculos aparece no telemóvel -->
     <a-scene physics="debug: false; gravity: -9.8" shooter vr-mode-ui="enabled: true">
       
-      <!-- Chão -->
-      <a-plane static-body rotation="-90 0 0" width="50" height="50" color="#f58220"></a-plane>
       <a-sky color="#222"></a-sky>
+      <a-plane static-body rotation="-90 0 0" width="50" height="50" color="#f58220"></a-plane>
 
-      <!-- BALIZA (Posicionada em -10) -->
+      <!-- BALIZA (Now correctly positioned at Z = -10) -->
       
         <a-box static-body position="-1.5 1 0" width="0.1" height="2" depth="0.1" color="white"></a-box>
         <a-box static-body position="1.5 1 0" width="0.1" height="2" depth="0.1" color="white"></a-box>
         <a-box static-body position="0 2 0" width="3.1" height="0.1" depth="0.1" color="white"></a-box>
+        <!-- Invisible back wall to stop the ball -->
+        <a-plane static-body position="0 1 -0.1" width="3" height="2" opacity="0.1" color="white"></a-plane>
       
 
-      <!-- GUARDA-REDES (À frente da baliza em -9.5) -->
+      <!-- GUARDA-REDES -->
       <a-box id="keeper"
              static-body
-             position="0 1 -9.5" 
+             position="0 0.8 -9.7" 
              width="0.8" height="1.6" depth="0.3" 
              color="red"
-             animation="property: position; to: 1.2 1 -9.5; from: -1.2 1 -9.5; dur: 1500; dir: alternate; loop: true; easing: linear">
+             animation="property: position; to: 1.1 0.8 -9.7; from: -1.1 0.8 -9.7; dur: 1500; dir: alternate; loop: true; easing: linear">
       </a-box>
 
-      <!-- Câmara e Mira -->
+      <!-- Camera + Crosshair -->
       
         
-          
-          
         
       
 
@@ -50,28 +49,32 @@
             
             bola.setAttribute('radius', '0.15');
             bola.setAttribute('color', '#4CC3D9');
-            // 'dynamic-body' faz a bola mover-se com física
-            bola.setAttribute('dynamic-body', 'mass: 1; restitution: 0.5');
+            // Physics attributes
+            bola.setAttribute('dynamic-body', 'mass: 1; restitution: 0.7');
             
-            const pos = cam.object3D.getWorldPosition(new THREE.Vector3());
+            // Start position: just in front of the camera
+            const pos = cam.object3D.position;
             bola.setAttribute('position', `${pos.x} ${pos.y} ${pos.z - 0.5}`);
 
+            // Direction calculation
             const direction = new THREE.Vector3(0, 0, -1);
             direction.applyQuaternion(cam.object3D.quaternion);
-            direction.multiplyScalar(25); // Força aumentada
+            direction.multiplyScalar(20); 
 
             cena.appendChild(bola);
 
-            // Se a bola ficar parada, este timer força o movimento
+            // Apply velocity once the physics body is ready
             bola.addEventListener('body-loaded', () => {
-              const força = new CANNON.Vec3(direction.x, direction.y + 4, direction.z);
-              bola.body.velocity.set(força.x, força.y, força.z);
+              // We use CANNON.Vec3 for the physics engine
+              const force = new CANNON.Vec3(direction.x, direction.y + 2, direction.z);
+              bola.body.velocity.set(force.x, force.y, force.z);
             });
 
+            // Cleanup
             setTimeout(() => { if(bola.parentNode) bola.parentNode.removeChild(bola); }, 4000);
           };
 
-          window.addEventListener('keydown', disparar);
+          window.addEventListener('keydown', (e) => { if(e.code === "Space") disparar(); });
           window.addEventListener('click', disparar);
         }
       });
