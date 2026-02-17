@@ -16,6 +16,9 @@
   <!-- Score -->
   <a-text id="score" value="Score: 0" position="0 3 -5" align="center" width="8" color="white"></a-text>
 
+  <!-- Barra de força -->
+  <a-box id="power-bar" position="0 0.2 4.5" width="0.1" height="0.5" depth="0.1" color="lime" visible="false"></a-box>
+
   <!-- Som de golo -->
   <a-sound id="goal-sound" src="https://cdn.aframe.io/basic-guide/audio/boing.mp3" autoplay="false"></a-sound>
 
@@ -35,9 +38,9 @@
     <a-box id="goal-trigger" position="0 1 -0.5" width="3" height="2" depth="0.5" visible="false" goal></a-box>
   </a-entity>
 
-  <!-- Guarda-redes -->
+  <!-- Guarda-redes sólido -->
   <a-box id="keeper" position="0 1 -9.3" width="0.7" height="1.6" depth="0.3" color="red"
-         animation="property: position; from: -1.2 1 -9.3; to: 1.2 1 -9.3; dir: alternate; loop: true; dur: 1500">
+         keeper>
   </a-box>
 
 </a-scene>
@@ -45,7 +48,7 @@
 <script>
 let score = 0;
 
-// DETECTOR DE GOLO
+// COMPONENTE GOLO
 AFRAME.registerComponent('goal', {
   init() {
     this.el.addEventListener('check-collision', e => {
@@ -55,15 +58,18 @@ AFRAME.registerComponent('goal', {
       const p = bola.object3D.position;
       const b = this.el.object3D;
 
-      // Detecta colisão com baliza
+      // colisão com baliza
       if (p.x > b.position.x - 1.5 && p.x < b.position.x + 1.5 &&
           p.y > b.position.y - 1 && p.y < b.position.y + 1 &&
           p.z > b.position.z - 0.5 && p.z < b.position.z + 0.5) {
 
-        // Verifica se o guarda-redes bloqueia
+        // Verifica se guarda-redes bloqueia
         const keeper = document.querySelector('#keeper');
         const kp = keeper.object3D.position;
-        if (Math.abs(p.x - kp.x) < 0.4 && Math.abs(p.y - kp.y) < 1) {
+        const kr = keeper.getAttribute('geometry');
+
+        if (Math.abs(p.x - kp.x) < kr.width/2 && Math.abs(p.y - kp.y) < kr.height/2 &&
+            Math.abs(p.z - kp.z) < kr.depth/2) {
           // Bola bloqueada
           bola.remove();
           return;
@@ -82,6 +88,15 @@ AFRAME.registerComponent('goal', {
   }
 });
 
+// COMPONENTE DO GUARDA-REDES (animação)
+AFRAME.registerComponent('keeper', {
+  tick(time, delta) {
+    const el = this.el;
+    const pos = el.object3D.position;
+    pos.x = Math.sin(time / 800) * 1.2; // movimenta horizontalmente
+  }
+});
+
 // SHOOTER COM FORÇA PROGRESSIVA
 AFRAME.registerComponent('shooter', {
   init() {
@@ -89,16 +104,19 @@ AFRAME.registerComponent('shooter', {
     let power = 0;
     let charging = false;
     let interval;
-
     const maxPower = 1.5;
+
+    const bar = document.querySelector('#power-bar');
 
     window.addEventListener('keydown', e => {
       if (e.code === 'Space' && !charging) {
         charging = true;
         power = 0;
+        bar.setAttribute('visible', true);
         interval = setInterval(() => {
           power += 0.02;
           if (power > maxPower) power = maxPower;
+          bar.setAttribute('scale', `${power/ maxPower} 1 1`);
         }, 16);
       }
     });
@@ -106,6 +124,7 @@ AFRAME.registerComponent('shooter', {
     window.addEventListener('keyup', e => {
       if (e.code === 'Space' && charging) {
         charging = false;
+        bar.setAttribute('visible', false);
         clearInterval(interval);
 
         const cam = document.querySelector('[camera]');
@@ -114,21 +133,17 @@ AFRAME.registerComponent('shooter', {
         bola.setAttribute('color', '#4CC3D9');
         scene.appendChild(bola);
 
-        // Posição inicial
         const pos = new THREE.Vector3();
         cam.object3D.getWorldPosition(pos);
         bola.object3D.position.copy(pos);
 
-        // Direção
         const dir = new THREE.Vector3(0,0,-1);
         dir.applyQuaternion(cam.object3D.quaternion);
 
-        // Velocidade proporcional ao power
         let velocity = { x: dir.x * 5 * power, y: dir.y * 5 * power + power*2, z: dir.z * 5 * power };
-
         bola.setAttribute('movement', { vel: velocity });
 
-        // Checa colisão com baliza
+        // Checar colisão com baliza
         const goalTrigger = document.querySelector('#goal-trigger');
         const check = () => {
           if (!bola.parentNode) return;
@@ -137,7 +152,6 @@ AFRAME.registerComponent('shooter', {
         };
         check();
 
-        // Limpeza
         setTimeout(() => {
           if (bola.parentNode) bola.parentNode.removeChild(bola);
         }, 5000);
@@ -146,15 +160,12 @@ AFRAME.registerComponent('shooter', {
   }
 });
 
-// MOVIMENTO DA BOLA (Gravidade manual)
+// MOVIMENTO DA BOLA (gravidade)
 AFRAME.registerComponent('movement', {
   schema: { vel: { type: 'vec3' } },
-
   tick(time, delta) {
     const dt = delta / 1000;
     const v = this.data.vel;
-
-    // gravidade
     v.y -= 9.8 * dt;
 
     const p = this.el.object3D.position;
