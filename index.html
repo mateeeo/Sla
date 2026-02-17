@@ -1,25 +1,31 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Handball VR - A-Frame</title>
-    <!-- Bibliotecas Necessárias -->
-    <script src="https://aframe.io"></script>
+    <meta charset="utf-8">
+    <title>Handball VR - A-Frame 1.7.1</title>
+    <!-- Bibliotecas Versão 1.7.1 -->
+    <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net"></script>
-    <script src="https://unpkg.com@^3.0.2/dist/aframe-super-hands.min.js"></script>
-    <script src="https://unpkg.com@^4.1.1/dist/aframe-event-set-component.min.js"></script>
+    <script src="https://unpkg.com"></script>
 
     <script>
-      // Lógica para detetar quando a bola entra na baliza
-      AFRAME.registerComponent('goal-sensor', {
+      let goals = 0;
+      AFRAME.registerComponent('goal-logic', {
         init: function () {
           this.el.addEventListener('collidestart', (e) => {
             if (e.detail.target.el.id === 'ball') {
-              alert("GOLO!");
-              // Reposiciona a bola no centro após o golo
+              goals++;
+              document.querySelector('#score').setAttribute('value', 'SCORE: ' + goals);
+              
+              // Efeito visual e reset
               const ball = e.detail.target.el;
-              ball.setAttribute('position', '0 1.5 -2');
-              ball.body.velocity.set(0, 0, 0);
-              ball.body.angularVelocity.set(0, 0, 0);
+              setTimeout(() => {
+                ball.setAttribute('position', '0 1.5 -1.5');
+                if (ball.body) {
+                  ball.body.velocity.set(0, 0, 0);
+                  ball.body.angularVelocity.set(0, 0, 0);
+                }
+              }, 100);
             }
           });
         }
@@ -29,43 +35,38 @@
   <body>
     <a-scene physics="debug: false; gravity: -9.8">
       
-      <!-- Iluminação e Céu -->
-      <a-sky color="#87CEEB"></a-sky>
-      <a-light type="ambient" intensity="0.5"></a-light>
-      <a-light type="directional" position="1 4 3" intensity="0.8"></a-light>
+      <!-- Placar Moderno -->
+      <a-text id="score" value="SCORE: 0" position="0 3.5 -4" 
+              align="center" color="#00FF00" font="mozillavr"></a-text>
 
-      <!-- Chão (Pavilhão) -->
-      <a-plane static-body rotation="-90 0 0" width="20" height="40" color="#3a5a40"></a-plane>
+      <!-- Ambiente Pavilhão -->
+      <a-sky color="#111"></a-sky>
+      <a-plane static-body rotation="-90 0 0" width="20" height="20" color="#222"></a-plane>
+      <a-grid></a-grid>
 
-      <!-- A Bola -->
+      <!-- Bola -->
       <a-sphere id="ball" dynamic-body="mass: 0.5" 
-                grabbable 
-                position="0 1.5 -2" radius="0.15" color="orange"
-                shadow="cast: true">
+                grabbable
+                position="0 1.5 -1" radius="0.12" color="orange">
       </a-sphere>
 
       <!-- Baliza -->
       
-        <!-- Postes e Barra (Obstáculos físicos) -->
         <a-box static-body position="-1.5 1 0" width="0.1" height="2" depth="0.1" color="white"></a-box>
         <a-box static-body position="1.5 1 0" width="0.1" height="2" depth="0.1" color="white"></a-box>
         <a-box static-body position="0 2 0" width="3.1" height="0.1" depth="0.1" color="white"></a-box>
-        
-        <!-- Sensor de Golo (Invisível, dentro da baliza) -->
-        <a-box id="sensor" goal-sensor
-               static-body="shape: box; sphereRadius: NaN"
-               position="0 1 -0.5" width="2.8" height="1.8" depth="0.5" 
-               visible="false">
-        </a-box>
+        <!-- Área de Golo -->
+        <a-box goal-logic static-body="shape: box" 
+               position="0 1 -0.1" width="2.8" height="1.8" depth="0.1" 
+               visible="false"></a-box>
       
 
-      <!-- Controladores para VR (Mãos) -->
-      
-      
-
-      <!-- Câmara para Desktop (Permite arrastar a bola com o rato) -->
+      <!-- Setup de Interação (Mãos e Rato) -->
       
         
+      
+
+      
       
 
     </a-scene>
