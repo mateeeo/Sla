@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Handball VR - Simulador Completo</title>
+<title>Handball VR - Simulador Ajustado</title>
 <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
 </head>
 
@@ -17,13 +17,13 @@
   <a-text id="score" value="Score: 0" position="0 3 -5" align="center" width="8" color="white"></a-text>
 
   <!-- Barra de força -->
-  <a-box id="power-bar" position="0 0.2 4.5" width="0.1" height="0.5" depth="0.1" color="lime" visible="false"></a-box>
+  <a-box id="power-bar" position="0 0.15 4.5" width="0.1" height="0.5" depth="0.1" color="lime" visible="false"></a-box>
 
   <!-- Som de golo -->
   <a-sound id="goal-sound" src="https://cdn.aframe.io/basic-guide/audio/boing.mp3" autoplay="false"></a-sound>
 
-  <!-- Câmera -->
-  <a-entity position="0 1.6 5">
+  <!-- Câmera PLAYER mais baixa -->
+  <a-entity position="0 1.2 5">
     <a-camera>
       <a-cursor></a-cursor>
     </a-camera>
@@ -34,8 +34,8 @@
     <a-box position="-1.5 1 0" width="0.1" height="2" depth="0.1" color="white"></a-box>
     <a-box position="1.5 1 0" width="0.1" height="2" depth="0.1" color="white"></a-box>
     <a-box position="0 2 0" width="3" height="0.1" depth="0.1" color="white"></a-box>
-    <!-- Trigger invisível -->
-    <a-box id="goal-trigger" position="0 1 -0.5" width="3" height="2" depth="0.5" visible="false" goal></a-box>
+    <!-- Trigger invisível ajustado -->
+    <a-box id="goal-trigger" position="0 1 -0.25" width="3" height="2" depth="0.5" visible="false" goal></a-box>
   </a-entity>
 
   <!-- Guarda-redes sólido -->
@@ -58,19 +58,16 @@ AFRAME.registerComponent('goal', {
       const p = bola.object3D.position;
       const b = this.el.object3D;
 
-      // colisão com baliza
       if (p.x > b.position.x - 1.5 && p.x < b.position.x + 1.5 &&
           p.y > b.position.y - 1 && p.y < b.position.y + 1 &&
-          p.z > b.position.z - 0.5 && p.z < b.position.z + 0.5) {
+          p.z > b.position.z - 0.25 && p.z < b.position.z + 0.25) { // trigger ajustado
 
-        // Verifica se guarda-redes bloqueia
+        // Verifica colisão com guarda-redes
         const keeper = document.querySelector('#keeper');
         const kp = keeper.object3D.position;
         const kr = keeper.getAttribute('geometry');
-
         if (Math.abs(p.x - kp.x) < kr.width/2 && Math.abs(p.y - kp.y) < kr.height/2 &&
             Math.abs(p.z - kp.z) < kr.depth/2) {
-          // Bola bloqueada
           bola.remove();
           return;
         }
@@ -78,7 +75,6 @@ AFRAME.registerComponent('goal', {
         score++;
         document.querySelector('#score').setAttribute('value', 'Score: ' + score);
 
-        // Som de golo
         const sound = document.querySelector('#goal-sound');
         sound.components.sound.playSound();
 
@@ -88,12 +84,12 @@ AFRAME.registerComponent('goal', {
   }
 });
 
-// COMPONENTE DO GUARDA-REDES (animação)
+// GUARDA-REDES ANIMADO
 AFRAME.registerComponent('keeper', {
   tick(time, delta) {
     const el = this.el;
     const pos = el.object3D.position;
-    pos.x = Math.sin(time / 800) * 1.2; // movimenta horizontalmente
+    pos.x = Math.sin(time / 800) * 1.2; // movimento horizontal
   }
 });
 
@@ -116,7 +112,7 @@ AFRAME.registerComponent('shooter', {
         interval = setInterval(() => {
           power += 0.02;
           if (power > maxPower) power = maxPower;
-          bar.setAttribute('scale', `${power/ maxPower} 1 1`);
+          bar.setAttribute('scale', `${power / maxPower} 1 1`);
         }, 16);
       }
     });
@@ -173,7 +169,6 @@ AFRAME.registerComponent('movement', {
     p.y += v.y * dt;
     p.z += v.z * dt;
 
-    // chão
     if (p.y < 0.2) {
       p.y = 0.2;
       v.y *= -0.5;
