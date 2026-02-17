@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Handball VR - Simulador Ajustado</title>
+<title>Handball VR - Simulador Final</title>
 <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
 </head>
 
@@ -34,11 +34,12 @@
     <a-box position="-1.5 1 0" width="0.1" height="2" depth="0.1" color="white"></a-box>
     <a-box position="1.5 1 0" width="0.1" height="2" depth="0.1" color="white"></a-box>
     <a-box position="0 2 0" width="3" height="0.1" depth="0.1" color="white"></a-box>
-    <!-- Trigger invisível ajustado -->
+
+    <!-- Trigger invisível atrás da baliza -->
     <a-box id="goal-trigger" position="0 1 -10.1" width="3" height="2" depth="0.5" visible="false" goal></a-box>
   </a-entity>
 
-  <!-- Guarda-redes sólido -->
+  <!-- Guarda-redes sólido e animado -->
   <a-box id="keeper" position="0 1 -9.3" width="0.7" height="1.6" depth="0.3" color="red"
          keeper>
   </a-box>
@@ -58,20 +59,24 @@ AFRAME.registerComponent('goal', {
       const p = bola.object3D.position;
       const b = this.el.object3D;
 
+      // Trigger atrás da baliza
       if (p.x > b.position.x - 1.5 && p.x < b.position.x + 1.5 &&
           p.y > b.position.y - 1 && p.y < b.position.y + 1 &&
-          p.z > b.position.z - 0.25 && p.z < b.position.z + 0.25) { // trigger ajustado
+          p.z > b.position.z - 0.25 && p.z < b.position.z + 0.25) {
 
-        // Verifica colisão com guarda-redes
+        // Guarda-redes bloqueia
         const keeper = document.querySelector('#keeper');
         const kp = keeper.object3D.position;
         const kr = keeper.getAttribute('geometry');
-        if (Math.abs(p.x - kp.x) < kr.width/2 && Math.abs(p.y - kp.y) < kr.height/2 &&
+        if (Math.abs(p.x - kp.x) < kr.width/2 &&
+            Math.abs(p.y - kp.y) < kr.height/2 &&
             Math.abs(p.z - kp.z) < kr.depth/2) {
+          // Bola toca no guarda-redes → remove
           bola.remove();
           return;
         }
 
+        // Golo válido
         score++;
         document.querySelector('#score').setAttribute('value', 'Score: ' + score);
 
@@ -139,7 +144,7 @@ AFRAME.registerComponent('shooter', {
         let velocity = { x: dir.x * 5 * power, y: dir.y * 5 * power + power*2, z: dir.z * 5 * power };
         bola.setAttribute('movement', { vel: velocity });
 
-        // Checar colisão com baliza
+        // Checar colisão com baliza e guarda-redes
         const goalTrigger = document.querySelector('#goal-trigger');
         const check = () => {
           if (!bola.parentNode) return;
@@ -169,6 +174,7 @@ AFRAME.registerComponent('movement', {
     p.y += v.y * dt;
     p.z += v.z * dt;
 
+    // chão
     if (p.y < 0.2) {
       p.y = 0.2;
       v.y *= -0.5;
