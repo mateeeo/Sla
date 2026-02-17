@@ -1,122 +1,148 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Handball VR - Final Fix 2026</title>
-    <!-- Modern A-Frame version -->
-    <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
-    <!-- Essential: Maintained C-Frame physics driver -->
-    <script src="https://cdn.jsdelivr.net"></script>
-  </head>
-  <body>
-    <a-scene physics="debug: false; gravity: -9.8" shooter>
-      
-      <a-assets>
-        <!-- Replace with a valid sound URL if you have one -->
-        <audio id="goal-sound" src="https://cdn.aframe.io" preload="auto"></audio>
-      </a-assets>
+<head>
+  <title>Handball VR - Final Fix 2026</title>
 
-      <!-- Floor -->
-      <a-plane static-body rotation="-90 0 0" width="50" height="50" color="#f58220"></a-plane>
-      <a-sky color="#222"></a-sky>
+  <!-- A-Frame -->
+  <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
 
-      <!-- Scoreboard UI -->
-      <a-text id="score-text" value="Score: 0" position="0 3.5 -5" align="center" color="white" width="10"></a-text>
+  <!-- Physics System -->
+  <script src="https://cdn.jsdelivr.net/npm/aframe-physics-system@4.2.2/dist/aframe-physics-system.min.js"></script>
+</head>
 
-      <!-- BALIZA (at Z = -10) -->
-      
-        <!-- Posts -->
-        <a-box static-body position="-1.5 1 0" width="0.1" height="2" depth="0.1" color="white"></a-box>
-        <a-box static-body position="1.5 1 0" width="0.1" height="2" depth="0.1" color="white"></a-box>
-        <a-box static-body position="0 2 0" width="3.1" height="0.1" depth="0.1" color="white"></a-box>
-        
-        <!-- Score Trigger (Inside the goal) -->
-        <a-box id="goal-trigger" 
-               static-body="shape: box; isTrigger: true" 
-               position="0 1 -0.5" width="3" height="2" depth="0.5" 
-               visible="false"
-               goal-detector>
-        </a-box>
-      
+<body>
+<a-scene physics="gravity: -9.8" shooter>
 
-      <!-- GUARDA-REDES -->
-      <a-box id="keeper"
-             static-body
-             position="0 1 -9.5" 
-             width="0.8" height="1.6" depth="0.3" 
-             color="red"
-             animation="property: position; to: 1.2 1 -9.5; from: -1.2 1 -9.5; dur: 1500; dir: alternate; loop: true; easing: linear">
-      </a-box>
+  <a-assets>
+    <audio id="goal-sound" src=""></audio>
+  </a-assets>
 
-      <!-- Camera with Crosshair -->
-      
-        
-        
-      
+  <!-- FLOOR -->
+  <a-plane static-body rotation="-90 0 0" width="50" height="50" color="#f58220"></a-plane>
+  <a-sky color="#222"></a-sky>
 
-    </a-scene>
+  <!-- SCORE UI -->
+  <a-text id="score-text"
+          value="Score: 0"
+          position="0 3.5 -5"
+          align="center"
+          color="white"
+          width="10">
+  </a-text>
 
-    <script>
-      let score = 0;
+  <!-- CAMERA -->
+  <a-entity position="0 1.6 5">
+    <a-camera>
+      <a-cursor color="white"></a-cursor>
+    </a-camera>
+  </a-entity>
 
-      // Component to detect goals
-      AFRAME.registerComponent('goal-detector', {
-        init: function () {
-          this.el.addEventListener('collide', (e) => {
-            // Check if the hit object is a ball
-            if (e.detail.body.el.classList.contains('ball')) {
-              score++;
-              document.querySelector('#score-text').setAttribute('value', 'Score: ' + score);
-              // Clean up the ball immediately to avoid double scoring
-              e.detail.body.el.parentNode.removeChild(e.detail.body.el);
-              // Play Sound logic would go here
-              console.log("GOAL! Total:", score);
-            }
-          });
-        }
+  <!-- GOAL GROUP -->
+  <a-entity position="0 0 -10">
+
+    <!-- POSTS -->
+    <a-box static-body position="-1.5 1 0" width="0.1" height="2" depth="0.1" color="white"></a-box>
+    <a-box static-body position="1.5 1 0" width="0.1" height="2" depth="0.1" color="white"></a-box>
+    <a-box static-body position="0 2 0" width="3.1" height="0.1" depth="0.1" color="white"></a-box>
+
+    <!-- TRIGGER -->
+    <a-box id="goal-trigger"
+           static-body="shape: box; isTrigger: true"
+           position="0 1 -0.5"
+           width="3"
+           height="2"
+           depth="0.5"
+           visible="false"
+           goal-detector>
+    </a-box>
+
+  </a-entity>
+
+  <!-- GOALKEEPER -->
+  <a-box id="keeper"
+         static-body
+         position="0 1 -9.5"
+         width="0.8"
+         height="1.6"
+         depth="0.3"
+         color="red"
+         animation="property: position;
+                    to: 1.2 1 -9.5;
+                    from: -1.2 1 -9.5;
+                    dur: 1500;
+                    dir: alternate;
+                    loop: true;
+                    easing: linear">
+  </a-box>
+
+</a-scene>
+
+<script>
+let score = 0;
+
+/* GOAL DETECTOR */
+AFRAME.registerComponent('goal-detector', {
+  init: function () {
+    this.el.addEventListener('collidestart', (e) => {
+      const other = e.detail.body.el;
+      if (other.classList.contains('ball')) {
+        score++;
+        document.querySelector('#score-text')
+          .setAttribute('value', 'Score: ' + score);
+
+        if (other.parentNode) other.parentNode.removeChild(other);
+        console.log("GOAL!", score);
+      }
+    });
+  }
+});
+
+/* SHOOTER */
+AFRAME.registerComponent('shooter', {
+  init: function () {
+    const scene = this.el;
+
+    const fire = () => {
+      const cam = document.querySelector('[camera]');
+      if (!cam) return;
+
+      const ball = document.createElement('a-sphere');
+      ball.setAttribute('radius', '0.15');
+      ball.setAttribute('color', '#4CC3D9');
+      ball.classList.add('ball');
+
+      // POSITION
+      const pos = new THREE.Vector3();
+      cam.object3D.getWorldPosition(pos);
+      ball.setAttribute('position', pos);
+
+      scene.appendChild(ball);
+
+      // PHYSICS
+      ball.setAttribute('dynamic-body',
+        'shape: sphere; mass: 1; restitution: 0.5');
+
+      ball.addEventListener('body-loaded', () => {
+        const dir = new THREE.Vector3(0, 0, -1);
+        dir.applyQuaternion(cam.object3D.quaternion);
+        dir.multiplyScalar(25);
+
+        ball.body.velocity.set(dir.x, dir.y + 3, dir.z);
       });
 
-      AFRAME.registerComponent('shooter', {
-        init: function () {
-          const scene = this.el;
-          
-          const fire = () => {
-            const cam = document.querySelector('[camera]');
-            const ball = document.createElement('a-sphere');
-            
-            ball.setAttribute('radius', '0.15');
-            ball.setAttribute('color', '#4CC3D9');
-            ball.classList.add('ball'); // Tag for collision identification
-            
-            // Set starting position
-            const pos = new THREE.Vector3();
-            cam.object3D.getWorldPosition(pos);
-            ball.setAttribute('position', pos);
+      // CLEANUP
+      setTimeout(() => {
+        if (ball.parentNode) ball.parentNode.removeChild(ball);
+      }, 4000);
+    };
 
-            // Calculate trajectory
-            const direction = new THREE.Vector3(0, 0, -1);
-            direction.applyQuaternion(cam.object3D.quaternion);
-            direction.multiplyScalar(25);
+    window.addEventListener('click', fire);
+    window.addEventListener('keydown', e => {
+      if (e.code === "Space") fire();
+    });
+  }
+});
+</script>
 
-            // IMPORTANT: Add to scene FIRST
-            scene.appendChild(ball);
-
-            // Wait for body-loaded to apply velocity
-            ball.addEventListener('body-loaded', () => {
-              const velocity = new CANNON.Vec3(direction.x, direction.y + 3, direction.z);
-              ball.body.velocity.set(velocity.x, velocity.y, velocity.z);
-            });
-
-            // Set the physics component LAST
-            ball.setAttribute('dynamic-body', 'mass: 1; restitution: 0.5');
-
-            // Autoclean
-            setTimeout(() => { if(ball.parentNode) ball.parentNode.removeChild(ball); }, 4000);
-          };
-
-          window.addEventListener('click', fire);
-          window.addEventListener('keydown', (e) => { if(e.code === "Space") fire(); });
-        }
-      });
-    </script>
-  </body>
+</body>
 </html>
