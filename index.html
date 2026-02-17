@@ -1,74 +1,135 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <title>Handball VR - A-Frame 1.7.1</title>
-    <!-- Bibliotecas Versão 1.7.1 -->
-    <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net"></script>
-    <script src="https://unpkg.com"></script>
+<head>
+<meta charset="utf-8">
+<title>Mini Handball VR</title>
 
-    <script>
-      let goals = 0;
-      AFRAME.registerComponent('goal-logic', {
-        init: function () {
-          this.el.addEventListener('collidestart', (e) => {
-            if (e.detail.target.el.id === 'ball') {
-              goals++;
-              document.querySelector('#score').setAttribute('value', 'SCORE: ' + goals);
-              
-              // Efeito visual e reset
-              const ball = e.detail.target.el;
-              setTimeout(() => {
-                ball.setAttribute('position', '0 1.5 -1.5');
-                if (ball.body) {
-                  ball.body.velocity.set(0, 0, 0);
-                  ball.body.angularVelocity.set(0, 0, 0);
-                }
-              }, 100);
-            }
-          });
-        }
-      });
-    </script>
-  </head>
-  <body>
-    <a-scene physics="debug: false; gravity: -9.8">
-      
-      <!-- Placar Moderno -->
-      <a-text id="score" value="SCORE: 0" position="0 3.5 -4" 
-              align="center" color="#00FF00" font="mozillavr"></a-text>
+<!-- A-Frame -->
+<script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
 
-      <!-- Ambiente Pavilhão -->
-      <a-sky color="#111"></a-sky>
-      <a-plane static-body rotation="-90 0 0" width="20" height="20" color="#222"></a-plane>
-      <a-grid></a-grid>
+<!-- Física -->
+<script src="https://cdn.jsdelivr.net/npm/aframe-physics-system@4.2.2/dist/aframe-physics-system.min.js"></script>
+</head>
 
-      <!-- Bola -->
-      <a-sphere id="ball" dynamic-body="mass: 0.5" 
-                grabbable
-                position="0 1.5 -1" radius="0.12" color="orange">
-      </a-sphere>
+<body>
 
-      <!-- Baliza -->
-      
-        <a-box static-body position="-1.5 1 0" width="0.1" height="2" depth="0.1" color="white"></a-box>
-        <a-box static-body position="1.5 1 0" width="0.1" height="2" depth="0.1" color="white"></a-box>
-        <a-box static-body position="0 2 0" width="3.1" height="0.1" depth="0.1" color="white"></a-box>
-        <!-- Área de Golo -->
-        <a-box goal-logic static-body="shape: box" 
-               position="0 1 -0.1" width="2.8" height="1.8" depth="0.1" 
-               visible="false"></a-box>
-      
+<a-scene physics="gravity: -9.8" shooter>
 
-      <!-- Setup de Interação (Mãos e Rato) -->
-      
-        
-      
+  <!-- CHÃO -->
+  <a-plane static-body rotation="-90 0 0" width="40" height="40" color="#f58220"></a-plane>
+  <a-sky color="#202020"></a-sky>
 
-      
-      
+  <!-- SCORE -->
+  <a-text id="score"
+          value="Score: 0"
+          position="0 3 -5"
+          align="center"
+          width="8"
+          color="white"></a-text>
 
-    </a-scene>
-  </body>
+  <!-- CÂMARA -->
+  <a-entity position="0 1.6 5">
+    <a-camera>
+      <a-cursor color="white"></a-cursor>
+    </a-camera>
+  </a-entity>
+
+  <!-- BALIZA -->
+  <a-entity position="0 0 -10">
+
+    <a-box static-body position="-1.5 1 0" width="0.1" height="2" depth="0.1" color="white"></a-box>
+    <a-box static-body position="1.5 1 0" width="0.1" height="2" depth="0.1" color="white"></a-box>
+    <a-box static-body position="0 2 0" width="3" height="0.1" depth="0.1" color="white"></a-box>
+
+    <!-- TRIGGER GOLO -->
+    <a-box static-body="isTrigger:true"
+           position="0 1 -0.5"
+           width="3"
+           height="2"
+           depth="0.5"
+           visible="false"
+           goal></a-box>
+  </a-entity>
+
+  <!-- GUARDA-REDES -->
+  <a-box static-body
+         position="0 1 -9.3"
+         width="0.7"
+         height="1.6"
+         depth="0.3"
+         color="red"
+         animation="property: position;
+                    from: -1.2 1 -9.3;
+                    to: 1.2 1 -9.3;
+                    dir: alternate;
+                    loop: true;
+                    dur: 1500">
+  </a-box>
+
+</a-scene>
+
+<script>
+let pontos = 0;
+
+/* DETECTOR DE GOLO */
+AFRAME.registerComponent('goal', {
+  init() {
+    this.el.addEventListener('collidestart', e => {
+      const obj = e.detail.body.el;
+      if (!obj.classList.contains('bola')) return;
+
+      pontos++;
+      document.querySelector('#score')
+        .setAttribute('value', 'Score: ' + pontos);
+
+      obj.remove();
+    });
+  }
+});
+
+/* DISPARAR BOLA */
+AFRAME.registerComponent('shooter', {
+  init() {
+    const scene = this.el;
+
+    const disparar = () => {
+      const cam = document.querySelector('[camera]');
+      if (!cam) return;
+
+      const bola = document.createElement('a-sphere');
+      bola.setAttribute('radius', '0.15');
+      bola.setAttribute('color', '#4CC3D9');
+      bola.classList.add('bola');
+
+      const pos = new THREE.Vector3();
+      cam.object3D.getWorldPosition(pos);
+      bola.setAttribute('position', pos);
+
+      bola.setAttribute('dynamic-body',
+        'shape:sphere; mass:1; restitution:0.6');
+
+      scene.appendChild(bola);
+
+      setTimeout(() => {
+        if (!bola.body) return;
+
+        const dir = new THREE.Vector3(0,0,-1);
+        dir.applyQuaternion(cam.object3D.quaternion);
+        dir.multiplyScalar(22);
+
+        bola.body.velocity.set(dir.x, dir.y + 3, dir.z);
+      }, 50);
+
+      setTimeout(() => bola.remove(), 4000);
+    };
+
+    window.addEventListener('click', disparar);
+    window.addEventListener('keydown', e => {
+      if (e.code === 'Space') disparar();
+    });
+  }
+});
+</script>
+
+</body>
 </html>
