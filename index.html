@@ -1,145 +1,73 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>Handball VR - Final</title>
+  <head>
+    <title>Handball VR - A-Frame</title>
+    <!-- Bibliotecas Necessárias -->
+    <script src="https://aframe.io"></script>
+    <script src="https://cdn.jsdelivr.net"></script>
+    <script src="https://unpkg.com@^3.0.2/dist/aframe-super-hands.min.js"></script>
+    <script src="https://unpkg.com@^4.1.1/dist/aframe-event-set-component.min.js"></script>
 
-  <!-- A-Frame -->
-  <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
+    <script>
+      // Lógica para detetar quando a bola entra na baliza
+      AFRAME.registerComponent('goal-sensor', {
+        init: function () {
+          this.el.addEventListener('collidestart', (e) => {
+            if (e.detail.target.el.id === 'ball') {
+              alert("GOLO!");
+              // Reposiciona a bola no centro após o golo
+              const ball = e.detail.target.el;
+              ball.setAttribute('position', '0 1.5 -2');
+              ball.body.velocity.set(0, 0, 0);
+              ball.body.angularVelocity.set(0, 0, 0);
+            }
+          });
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <a-scene physics="debug: false; gravity: -9.8">
+      
+      <!-- Iluminação e Céu -->
+      <a-sky color="#87CEEB"></a-sky>
+      <a-light type="ambient" intensity="0.5"></a-light>
+      <a-light type="directional" position="1 4 3" intensity="0.8"></a-light>
 
-  <!-- Physics System -->
-  <script src="https://cdn.jsdelivr.net/npm/aframe-physics-system@4.2.2/dist/aframe-physics-system.min.js"></script>
-</head>
+      <!-- Chão (Pavilhão) -->
+      <a-plane static-body rotation="-90 0 0" width="20" height="40" color="#3a5a40"></a-plane>
 
-<body>
-<a-scene physics="gravity: -9.8; debug: false" shooter>
+      <!-- A Bola -->
+      <a-sphere id="ball" dynamic-body="mass: 0.5" 
+                grabbable 
+                position="0 1.5 -2" radius="0.15" color="orange"
+                shadow="cast: true">
+      </a-sphere>
 
-  <!-- CHÃO -->
-  <a-plane static-body rotation="-90 0 0" width="50" height="50" color="#f58220"></a-plane>
-  <a-sky color="#222"></a-sky>
+      <!-- Baliza -->
+      
+        <!-- Postes e Barra (Obstáculos físicos) -->
+        <a-box static-body position="-1.5 1 0" width="0.1" height="2" depth="0.1" color="white"></a-box>
+        <a-box static-body position="1.5 1 0" width="0.1" height="2" depth="0.1" color="white"></a-box>
+        <a-box static-body position="0 2 0" width="3.1" height="0.1" depth="0.1" color="white"></a-box>
+        
+        <!-- Sensor de Golo (Invisível, dentro da baliza) -->
+        <a-box id="sensor" goal-sensor
+               static-body="shape: box; sphereRadius: NaN"
+               position="0 1 -0.5" width="2.8" height="1.8" depth="0.5" 
+               visible="false">
+        </a-box>
+      
 
-  <!-- TEXTO SCORE -->
-  <a-text id="score-text"
-          value="Score: 0"
-          position="0 3.5 -5"
-          align="center"
-          color="white"
-          width="10">
-  </a-text>
+      <!-- Controladores para VR (Mãos) -->
+      
+      
 
-  <!-- CÂMARA -->
-  <a-entity position="0 1.6 5">
-    <a-camera>
-      <a-cursor color="white"></a-cursor>
-    </a-camera>
-  </a-entity>
+      <!-- Câmara para Desktop (Permite arrastar a bola com o rato) -->
+      
+        
+      
 
-  <!-- BALIZA -->
-  <a-entity position="0 0 -10">
-
-    <!-- POSTES -->
-    <a-box static-body position="-1.5 1 0" width="0.1" height="2" depth="0.1" color="white"></a-box>
-    <a-box static-body position="1.5 1 0" width="0.1" height="2" depth="0.1" color="white"></a-box>
-    <a-box static-body position="0 2 0" width="3.1" height="0.1" depth="0.1" color="white"></a-box>
-
-    <!-- DETECTOR DE GOLO -->
-    <a-box id="goal-trigger"
-           static-body="shape: box; isTrigger: true"
-           position="0 1 -0.5"
-           width="3"
-           height="2"
-           depth="0.5"
-           visible="false"
-           goal-detector>
-    </a-box>
-
-  </a-entity>
-
-  <!-- GUARDA REDES -->
-  <a-box static-body
-         position="0 1 -9.5"
-         width="0.8" height="1.6" depth="0.3"
-         color="red"
-         animation="property: position;
-                    to: 1.2 1 -9.5;
-                    from: -1.2 1 -9.5;
-                    dur: 1500;
-                    dir: alternate;
-                    loop: true;">
-  </a-box>
-
-</a-scene>
-
-<script>
-let score = 0;
-
-/* DETETOR DE GOLO */
-AFRAME.registerComponent('goal-detector', {
-  init: function () {
-    this.el.addEventListener('collidestart', (e) => {
-      const other = e.detail.body.el;
-      if (other.classList.contains('ball')) {
-        score++;
-        document.querySelector('#score-text')
-          .setAttribute('value', 'Score: ' + score);
-
-        if (other.parentNode) other.parentNode.removeChild(other);
-        console.log("GOLO!", score);
-      }
-    });
-  }
-});
-
-/* SHOOTER */
-AFRAME.registerComponent('shooter', {
-  init: function () {
-    const scene = this.el;
-
-    const fire = () => {
-      const cam = document.querySelector('[camera]');
-      if (!cam) return;
-
-      const ball = document.createElement('a-sphere');
-      ball.setAttribute('radius', '0.15');
-      ball.setAttribute('color', '#4CC3D9');
-      ball.classList.add('ball');
-
-      // POSIÇÃO INICIAL
-      const pos = new THREE.Vector3();
-      cam.object3D.getWorldPosition(pos);
-      ball.setAttribute('position', pos);
-
-      // FÍSICA PRIMEIRO
-      ball.setAttribute(
-        'dynamic-body',
-        'shape: sphere; mass: 1; restitution: 0.6'
-      );
-
-      scene.appendChild(ball);
-
-      // VELOCIDADE
-      setTimeout(() => {
-        if (!ball.body) return;
-
-        const dir = new THREE.Vector3(0, 0, -1);
-        dir.applyQuaternion(cam.object3D.quaternion);
-        dir.multiplyScalar(25);
-
-        ball.body.velocity.set(dir.x, dir.y + 3, dir.z);
-      }, 60);
-
-      // LIMPEZA
-      setTimeout(() => {
-        if (ball.parentNode) ball.parentNode.removeChild(ball);
-      }, 4000);
-    };
-
-    window.addEventListener('click', fire);
-    window.addEventListener('keydown', e => {
-      if (e.code === "Space") fire();
-    });
-  }
-});
-</script>
-
-</body>
+    </a-scene>
+  </body>
 </html>
