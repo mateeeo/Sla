@@ -2,22 +2,76 @@
 <html>
 <head>
 <meta charset="utf-8">
-
 <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
-
-<!-- AMMO PHYSICS (NOVO) -->
-<script src="https://cdn.jsdelivr.net/npm/aframe-physics-system@5.0.0/dist/aframe-physics-system.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/ammo.js"></script>
-
 </head>
 
 <body>
-<a-scene physics="driver: ammo; debug: true">
+<a-scene shooter>
 
-<a-plane static-body rotation="-90 0 0" width="10" height="10" color="green"></a-plane>
+<a-plane rotation="-90 0 0" width="20" height="20" color="green"></a-plane>
+<a-sky color="#222"></a-sky>
 
-<a-sphere dynamic-body position="0 5 -3" radius="0.5" color="red"></a-sphere>
+<a-entity position="0 1.6 5">
+  <a-camera>
+    <a-cursor></a-cursor>
+  </a-camera>
+</a-entity>
 
 </a-scene>
+
+<script>
+AFRAME.registerComponent('shooter', {
+  init() {
+    const scene = this.el;
+
+    const shoot = () => {
+      const cam = document.querySelector('[camera]');
+      const ball = document.createElement('a-sphere');
+
+      ball.setAttribute('radius', 0.2);
+      ball.setAttribute('color', 'red');
+      scene.appendChild(ball);
+
+      const pos = new THREE.Vector3();
+      cam.object3D.getWorldPosition(pos);
+      ball.object3D.position.copy(pos);
+
+      const dir = new THREE.Vector3(0,0,-1);
+      dir.applyQuaternion(cam.object3D.quaternion);
+      dir.multiplyScalar(0.4);
+
+      let velocity = { x: dir.x, y: dir.y + 0.15, z: dir.z };
+
+      ball.setAttribute('movement', { vel: velocity });
+    };
+
+    window.addEventListener('click', shoot);
+  }
+});
+
+AFRAME.registerComponent('movement', {
+  schema: { vel: { type: 'vec3' } },
+
+  tick(time, delta) {
+    const dt = delta / 1000;
+    const v = this.data.vel;
+
+    // gravidade manual
+    v.y -= 9.8 * dt;
+
+    const p = this.el.object3D.position;
+    p.x += v.x * 10 * dt;
+    p.y += v.y * 10 * dt;
+    p.z += v.z * 10 * dt;
+
+    // chão
+    if (p.y < 0.2) {
+      p.y = 0.2;
+      v.y *= -0.6; // ressalto
+    }
+  }
+});
+</script>
+
 </body>
 </html>
